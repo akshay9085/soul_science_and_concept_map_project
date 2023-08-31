@@ -8,6 +8,15 @@ require_once('email.inc');
 function science_and_concept_map_menu()
 {
 	$items = array();
+	$items['science-and-concept-map-project/completed-books'] = array(
+		'title' => 'Completed Books',
+		'page callback' => 'tbc_completed_books_display_new_category_all',
+		'access arguments' => array(
+		'soul science and concept map create proposal'
+		),
+		'type' => MENU_LOCAL_TASK,
+		'file' => 'science_and_concept_map_details.inc'
+	);
 	/* PROPOSAL */
 	$items['science-and-concept-map-project/proposal'] = array(
 		'title' => 'Science and Concept Map Proposal Form',
