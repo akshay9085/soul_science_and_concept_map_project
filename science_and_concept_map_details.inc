@@ -112,6 +112,7 @@ function tbc_completed_books_display_new_category_all()
 function tbc_books_display_new_category_form($form, &$form_state)
 {
     $category_default_value = 0;
+    $subcategory_default_value = 0;
         $countresult = db_query("SELECT count(DISTINCT po.id) c
       FROM soul_science_and_concept_map_proposal po
       WHERE po.approval_status = 3 ORDER BY po.id DESC");
@@ -135,6 +136,28 @@ function tbc_books_display_new_category_form($form, &$form_state)
         ),
         '#validated' => TRUE
     );
+
+    $form['subcategory'] = array(
+        '#type' => 'select',
+        '#title' => t('Does the content of this project match any chapter of a textbook'),
+        '#options' => _list_of_display_subcategory(),//_list_of_subcategory($category_default_value),
+        '#default_value' => $subcategory_default_value,
+        //'ajax_display_subcategory_book_list_callback'
+        '#ajax' => array(
+            'callback' => 
+            'ajax_display_all_book_list_callback'
+        ),
+        // '#prefix' => '<div id="ajax-subcategory-list-replace">',
+        // '#suffix' => '</div>',
+        '#validated' => TRUE,
+        // '#states' => array(
+        //     'invisible' => array(
+        //         ':input[name="category"]' => array(
+        //             'value' => $category_default_value
+        //         )
+        //     )
+        // )
+    );
     $form['book'] = array(
         '#type' => 'item',
         '#prefix' => '<div id="ajax-book-list-replace">',
@@ -144,6 +167,80 @@ function tbc_books_display_new_category_form($form, &$form_state)
     return $form;
 }
 
+
+function ajax_display_all_book_list_callback($form, $form_state)
+{
+    $category_default_value = $form_state['values']['category'];
+    $subcategory_default_value = $form_state['values']['subcategory'];
+    //var_dump($category_default_value);die;
+    switch($subcategory_default_value){
+
+        case 0:
+            $is_ncert_book = NULL;
+            break;
+        case 1:
+            $is_ncert_book = "Yes";
+            break;
+        case 2:
+            $is_ncert_book = "No";
+            break;
+    }
+    //var_dump($subcategory_default_value);die;
+    if ($category_default_value != '0' && $subcategory_default_value != 0 )
+    //OR $subcategory_default_value == 'All' 
+    {
+        //var_dump($is_ncert_book);die;
+        // $form['subcategory']['#options'] = _list_of_subcategory($category_default_value);
+        $form['book']['#markup'] = _list_of_all_completed_books($category_default_value, $is_ncert_book);
+        //$commands[] = ajax_command_replace("#ajax-subcategory-list-replace", drupal_render($form['subcategory']));
+        $commands[] = ajax_command_replace("#ajax-book-list-replace", drupal_render($form['book']));
+    } //$category_default_value > 0
+    elseif ($category_default_value != '0' && $subcategory_default_value == 0)
+    //OR $subcategory_default_value == 'All' 
+    {
+        // $form['subcategory']['#options'] = _list_of_subcategory($category_default_value);
+        $form['book']['#markup'] = _list_of_all_completed_books($category_default_value, $is_ncert_book);
+        //$commands[] = ajax_command_replace("#ajax-subcategory-list-replace", drupal_render($form['subcategory']));
+        $commands[] = ajax_command_replace("#ajax-book-list-replace", drupal_render($form['book']));
+    }
+    elseif($category_default_value == '0' && $subcategory_default_value != 0){
+        //var_dump($is_ncert_book);die;
+        $form['book']['#markup'] = _list_of_all_completed_books(NULL, $is_ncert_book);
+        $commands[] = ajax_command_replace("#ajax-book-list-replace", drupal_render($form['book']));
+    }
+    elseif($category_default_value == '0' && $subcategory_default_value == 0){
+        $form['book']['#markup'] = _list_of_all_completed_books();
+        $commands[] = ajax_command_replace("#ajax-book-list-replace", drupal_render($form['book']));
+    }
+    else
+    {
+        $form['book']['#markup'] = _list_of_all_completed_books();
+        $commands[] = ajax_command_replace("#ajax-book-list-replace", drupal_render($form['book']));
+    }
+    return array(
+        '#type' => 'ajax',
+        '#commands' => $commands
+    );
+}
+
+function _list_of_display_subcategory()
+{
+    $subcategory[0] = "All";
+    $subcategory[1] = "Examples from NCERT Books";
+    $subcategory[2] = "Examples from other sources";
+
+    //     $query = db_select('soul_science_and_concept_map_proposal','po');
+    //     $query->distinct();
+    //     $query->fields('po');
+    //     $query->isNotNull('po.is_ncert_book');
+    //     // $query->orderBy('ASC');
+    //     $subcategory_list = $query->execute();
+    // while ($subcategory_list_data = $subcategory_list->fetchObject())
+    // {
+    //     $subcategory[$subcategory_list_data->is_ncert_book] = $subcategory_list_data->is_ncert_book;
+    // } //$category_list_data = $category_list->fetchObject()
+    return $subcategory;
+}
 
 function _list_of_display_category()
 {
@@ -158,31 +255,10 @@ function _list_of_display_category()
     } //$category_list_data = $category_list->fetchObject()
     return $category;
 }
-function ajax_display_all_book_list_callback($form, $form_state)
-{
-    $category_default_value = $form_state['values']['category'];
-	//var_dump($category_default_value);die;
-    if ($category_default_value != '0')
-    {
-        //$form['subcategory']['#options'] = _list_of_subcategory($category_default_value);
-        $form['book']['#markup'] = _list_of_all_completed_books($category_default_value);
-        //$commands[] = ajax_command_replace("#ajax-subcategory-list-replace", drupal_render($form['subcategory']));
-        $commands[] = ajax_command_replace("#ajax-book-list-replace", drupal_render($form['book']));
-    } //$category_default_value > 0
-    else
-    {
-        $form['book']['#markup'] = _list_of_all_completed_books();
-        $commands[] = ajax_command_replace("#ajax-book-list-replace", drupal_render($form['book']));
-    }
-    return array(
-        '#type' => 'ajax',
-        '#commands' => $commands
-    );
-}
 
-function _list_of_all_completed_books($class_name = NULL)
+function _list_of_all_completed_books($class_name = NULL, $book_type = NULL)
 {
-	//var_dump($class_name);die;			
+	//var_dump($book_type);die;			
     $output = "";
     //get the book count
     // $result = db_query("SELECT COUNT( pe.book ) AS book_count FROM {textbook_companion_preference} pe LEFT JOIN textbook_companion_proposal po ON pe.proposal_id = po.id WHERE po.proposal_status =3 AND pe.approval_status =1");
@@ -192,28 +268,51 @@ function _list_of_all_completed_books($class_name = NULL)
     $book_count = $row->c;
     $i = $book_count;
     /* get preference */
-    if ($class_name == NULL)
+    if ($class_name == NULL && $book_type == NULL)
     {
-        $preference_q = db_query("SELECT po.id,
-      po.project_title as project_title, po.approval_date as approval_date, po.actual_completion_date as completion_date, po.contributor_name as full_name, po.university as university 
+        $preference_q = db_query("SELECT po.id,po.year_of_study,
+      po.project_title as project_title, po.approval_date as approval_date, po.actual_completion_date as completion_date, po.contributor_name as full_name, po.university as university, po.is_ncert_book as book_type 
       FROM soul_science_and_concept_map_proposal po WHERE po.approval_status = 3
     ORDER BY po.id");
     } //$category_default_value <= 0 && $subcategory_default_value == NULL
-    else
+    elseif($class_name != NULL && $book_type == NULL)
     {
-        $preference_q = db_query("SELECT  po.id,
-		po.project_title as project_title, po.approval_date as approval_date, po.actual_completion_date as completion_date, po.contributor_name as full_name, po.university as university 
+        $preference_q = db_query("SELECT  po.id,po.year_of_study,
+		po.project_title as project_title, po.approval_date as approval_date, po.actual_completion_date as completion_date, po.contributor_name as full_name, po.university as university, po.is_ncert_book as book_type 
 		FROM soul_science_and_concept_map_proposal po WHERE po.approval_status = 3 AND po.year_of_study= :class_name", array(
             "class_name" => $class_name,
+            
         ));
     }
+    elseif($class_name != NULL && $book_type != NULL ){
+        $preference_q = db_query("SELECT  po.id, po.year_of_study,
+		po.project_title as project_title, po.approval_date as approval_date, po.actual_completion_date as completion_date, po.contributor_name as full_name, po.university as university, po.is_ncert_book as book_type
+		FROM soul_science_and_concept_map_proposal po WHERE po.approval_status = 3 AND po.year_of_study= :class_name AND po.is_ncert_book = :book_type", array(
+            "class_name" => $class_name,
+            "book_type" => $book_type
+        ));
+    }
+    elseif($class_name == NULL && $book_type != NULL ){
+        $preference_q = db_query("SELECT  po.id, po.year_of_study,
+		po.project_title as project_title, po.approval_date as approval_date, po.actual_completion_date as completion_date, po.contributor_name as full_name, po.university as university, po.is_ncert_book as book_type 
+		FROM soul_science_and_concept_map_proposal po WHERE po.approval_status = 3 AND po.is_ncert_book = :book_type", array(
+            "book_type" => $book_type));
+    }
+    
 	//var_dump($preference_q->rowCount());die;
     while ($preference_data = $preference_q->fetchObject())
     {
+        if($preference_data->book_type == 'Yes'){
+            $book_type = 1;
+        }
+        else{
+            $book_type = 2;
+        }
         $proposal_rows[] = array(
             $i,
             //l($preference_data->project_title, 'textbook_run/' . $preference_data->pe_id . '/' . $preference_data->sub_category . '/' . $preference_data->category_id),
-			$preference_data->project_title,
+			l($preference_data->project_title,'textbook-run/' . $preference_data->id . '/' . $preference_data->year_of_study . '/' . $book_type),
+            $preference_data->book_type,
             $preference_data->full_name,
             $preference_data->university,
             date("Y", $preference_data->completion_date)
@@ -223,13 +322,14 @@ function _list_of_all_completed_books($class_name = NULL)
     /* check if there are any pending proposals */
     if (!$proposal_rows)
     {
-        $output .= t('There are no books availabe in this sub category.');
-    } //!$proposal_rows
+        $output .= t('There are no books availabe. ');
+    } //!$proposal_rows 'in this sub category.'
     else
     {
         $proposal_header = array(
             'No.',
-            'Title of the Book',
+            'Title of the Project',
+            'ncert book',
             'Contributor Name',
             'University / Institute',
             'Year of Completion'
